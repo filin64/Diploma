@@ -1,0 +1,14 @@
+MAZE_SIZE = (16, 16)
+BLOCK_SIZE = (4, 4)
+UP = (-1, 0)
+DOWN = (1, 0)
+LEFT = (0, -1)
+RIGHT = (0, 1)
+WALL = '#'
+WALL_PUN = -0.5
+HOLE = 'H'
+HOLE_PUN = -1
+FIN = 'F'
+FIN_PUN = 1
+ACTIONS = [UP, DOWN, LEFT, RIGHT]
+COLORS = ['grey', 'red', 'white', 'yellow', 'blue', 'magenta', 'cyan', 'white']
