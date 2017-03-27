@@ -7,21 +7,12 @@ np.set_printoptions(formatter={'float_kind':ff})
 while (True):
     env = obj.Env()
     cell = (0, 0)
-    thsom = obj.THSOM(20, 16)
     for T in range(1000):
         print ("TIME = ", T)
-        action = ACTIONS[np.random.randint(4)]
-        print ("ACTION = ", action)
-        cell, reward, is_done, is_block_changed = env.step(cell, action)
-        if is_block_changed or T == 0:
-            block = env.get_block(cell)[1]
-            in_vec = block.ravel().T
-            print ("Input Vector ", in_vec)
-            bmu = thsom.get_bmu(in_vec)
-            print ("BMU ", bmu)
-            thsom.update_sm_weights(bmu, T, in_vec)
-            # input("Press enter.")
+        action_ind = np.random.randint(4)
+        action = ACTIONS[action_ind]
+        print ("ACTION = ", ACTIONS_WORDS[action_ind])
+        cell, reward, is_done = env.step(cell, action)
         if is_done:
             break
-    print (thsom.sm.T)
-    input("Press enter.")
+        input("Press enter.")

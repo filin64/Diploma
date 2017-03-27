@@ -5,44 +5,67 @@ from termcolor import colored
 class Env:
     maze = []
     def __init__(self):
-        f = open('env/Map_v02')
+        f = open(FILE_PATH)
         self.maze = [list(l.strip('\n')) for l in f.readlines()]
-    def show(self):
+    #---------------------------------------------------------------------------------------------------#
+    # Function to display process of agent's movement
+    def show(self, position):
+        left, right, up, down = self.get_block(position)
         for i in range(np.shape(self.maze)[0]):
             for j in range(np.shape(self.maze)[1]):
-                k = self.get_block((i, j))[0]
-                print(colored(self.maze[i][j], COLORS[k % len(COLORS)]), end = '')
+                if j >= left and j <= right and i >= up and i <= down:
+                     print(colored(self.maze[i][j], 'red'), end='')
+                else:
+                     print(colored(self.maze[i][j], 'white'), end ='')
             print()
+    #---------------------------------------------------------------------------------------------------#
+    #Update cell with the value for displaying
     def update(self, cell, val):
         self.maze[cell[0]][cell[1]] = val
-    def get_block(self, cell):
-        i, j = cell
-        left_bound = j // BLOCK_SIZE[1] * BLOCK_SIZE[1]
-        right_bound = left_bound + BLOCK_SIZE[1]
-        up_bound = i // BLOCK_SIZE[0] * BLOCK_SIZE[1]
-        down_bound = up_bound + BLOCK_SIZE[0]
-        np_maze = np.array(self.maze)
-        block = np_maze[up_bound:down_bound, left_bound:right_bound]
-        np_block = [[0 if j in ['0', 'A', 'S', 'F'] else 1 for j in i] for i in block]
-        return cell[1] // BLOCK_SIZE[1] + up_bound, np.array(np_block)
-    def step(self, cell, action):
-        #Return values: new_cell, reward, is_done, is_block_changed
-        i, j = np.array(cell) + np.array(action)
+    #---------------------------------------------------------------------------------------------------#
+    # Making a step function. It returns all neccessary data which is needed to define strategy
+    # Return values: new_cell, reward, is_done
+    def step(self, position, action):
+        i, j = np.array(position) + np.array(action)
         if i < 0 or j < 0 or i >= MAZE_SIZE[0] or j >= MAZE_SIZE[1]:
-            return cell, None, None, None
+            self.update(position, 'A')
+            self.show(position)
+            return position, None, None
         if self.maze[i][j] == WALL:
-            return cell, WALL_PUN, False, None
+            return position, WALL_PUN, False
         if self.maze[i][j] == HOLE:
-            return (i, j), HOLE_PUN, True, None
+            return (i, j), HOLE_PUN, True
         if self.maze[i][j] == FIN:
-            return (i, j), FIN_PUN, True, None
-        self.update(cell, '0')
+            return (i, j), FIN_PUN, True
+        self.update(position, '0')
         self.update((i, j), 'A')
-        self.show()
-        is_block_changed = bool(self.get_block(cell)[0]-self.get_block((i, j))[0])
-        if is_block_changed:
-            print ("BLOCK CHANGED ", self.get_block((i, j))[0])
-        return (i, j), 0, False, is_block_changed
+        self.show((i, j))
+        return (i, j), 0, False
+    # ---------------------------------------------------------------------------------------------------#
+    # Defining 4x4 Block were we are now
+    def get_block(self, position):
+        i, j = position
+        left = j - BLOCK_SIZE[1]/2
+        right = j + BLOCK_SIZE[1]/2 - 1
+        up = i - BLOCK_SIZE[0]/2
+        down = i + BLOCK_SIZE[0]/2 - 1
+        #if we are out of left bound
+        if left < 0:
+            left = 0
+            right = BLOCK_SIZE[1] - 1
+        #if we are out of right bound:
+        if right > MAZE_SIZE[1] - 1:
+            right = MAZE_SIZE[1] - 1
+            left = MAZE_SIZE[1] - 1 - BLOCK_SIZE[1]
+        #if we are out of up bound
+        if up < 0:
+            up = 0
+            down = BLOCK_SIZE[0] - 1
+        #if we are out of down bound
+        if down > MAZE_SIZE[0] - 1:
+            down = MAZE_SIZE[0] - 1
+            up = MAZE_SIZE[0] - 1 - BLOCK_SIZE[0]
+        return (left, right, up, down)
 
 
 class THSOM:
@@ -50,6 +73,7 @@ class THSOM:
     tm = np.zeros((0, 0))
     neurons_num = 0
     dm = np.zeros((0, 0))
+    sm2d = np.zeros((0, 0))
     def __init__(self, neurons_num, dim):
         self.neurons_num = neurons_num
         self.sm = np.random.rand(dim, neurons_num)
