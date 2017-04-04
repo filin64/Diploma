@@ -28,6 +28,7 @@ class Env:
                 else:
                      print(colored(self.maze[i][j], 'white'), end ='')
             print()
+        print ('---------------------------------------------------------------------------------------------')
     #---------------------------------------------------------------------------------------------------#
     #Update cell with the value for displaying
     def update(self, cell, val):
@@ -40,30 +41,31 @@ class Env:
         # if we are out of bounds
         if i < 0 or j < 0 or i >= MAZE_SIZE[0] or j >= MAZE_SIZE[1]:
             self.update(position, 'A')
-            self.show(position)
-            return position, BOUND_PUN, None
+            return position, BOUND_PUN, True
         if self.maze[i][j] == WALL:
-            self.update(position, 'A')
-            self.show(position)
+            self.update((i, j), '*')
+            self.update(position, '0')
             return position, WALL_PUN, True
         if self.maze[i][j] == HOLE:
             return (i, j), HOLE_PUN, True
         if self.maze[i][j] == FIN:
             self.update((i, j), '*')
-            self.show((i, j))
             return (i, j), FIN_PUN, True
         self.update(position, '0')
         self.update((i, j), 'A')
-        self.show((i, j))
         return (i, j), REWARD, False
     # ---------------------------------------------------------------------------------------------------#
     # 4x4 Block were we are now
     def get_block(self, position):
         i, j = position
-        left = j - BLOCK_SIZE[1]/2
-        right = j + BLOCK_SIZE[1]/2 - 1
-        up = i - BLOCK_SIZE[0]/2
-        down = i + BLOCK_SIZE[0]/2 - 1
+        left = j - int(BLOCK_SIZE[1]/2)
+        right = j + int(BLOCK_SIZE[1]/2)
+        if BLOCK_SIZE[1] % 2 == 0:
+            right -= 1
+        up = i - int(BLOCK_SIZE[0]/2)
+        down = i + int(BLOCK_SIZE[0] / 2)
+        if BLOCK_SIZE[0] % 2 == 0:
+            down -= 1
         #if we are out of left bound
         if left < 0:
             left = 0
@@ -96,8 +98,7 @@ class THSOM:
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
-        self.sm = np.random.rand(dim, neurons_num)
-        self.tm = np.random.rand(neurons_num, neurons_num)
+        self.sm = np.random.rand(dim, neurons_num) * 0.6
     def get_bmu(self, vec):
         mn = 1e9
         bmu = 0
@@ -110,8 +111,8 @@ class THSOM:
     def update_sm_weights(self, ibmu, t, vec):
         #ibmu - index of bmu, t - moment of time, vec - input vector
         bmu = self.sm[:, ibmu]
-        rad = max (10**(-10), R0 * np.exp(-t / R1))
-        # rad = 10**(-10)
+        # rad = max (10**(-10), R0 * np.exp(-t / R1))
+        rad = 10**(-10)
         if LOG_ON: print ("RADIUS = ", rad)
         for i in range(self.neurons_num):
             dist = self.dist(x=self.sm[:,i], y=bmu)
@@ -126,8 +127,8 @@ class THSOM:
                 if LOG_ON: print ("After ", self.sm[:,i])
     def dist(self, x, y):
         # x - input, y - neuron
-        y = [np.uint64(1) if i > 0.5 else np.uint64(0) for i in y]
-        x = [np.uint64(1) if i > 0.5 else np.uint64(0) for i in x]
+        y = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in y]
+        x = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in x]
         alpha = 0.5
         betta = 5
         y_ld = deque(y) #for left shift
@@ -156,15 +157,15 @@ class THSOM:
     def get_neuron_as_block(self, i):
         x = self.sm[:,i]
         for i in range(len(x)):
-            if x[i] > 0.5:
+            if x[i] > WALL_THOLD:
                 print('#', end='')
             else:
                 print ('0', end='')
-            if (i + 1) % 4 == 0:
+            if (i + 1) % BLOCK_SIZE[0] == 0:
                 print ()
 class QNet:
     weights = np.zeros((0, 0))
-    n = 16
+    n = BLOCK_SIZE[0]*BLOCK_SIZE[1]
     def __init__(self):
         self.weights = np.random.rand(self.n, 4)
     def predict(self, x):
@@ -175,7 +176,7 @@ class QNet:
     def back_prop(self, reward, x, ind):
         #x - input vector, y - output answer
         old_weights = np.copy(self.weights[:, ind])
-        self.weights[:, ind] = self.weights[:, ind] + x * reward + np.ones(self.n).T * DELTA
+        self.weights[:, ind] = self.weights[:, ind] + (x + 1) * reward + np.ones(self.n).T * DELTA
         if LOG_ON: print ('Weights Delta', self.weights[:, ind] - old_weights)
     def print_weights(self):
         print (self.weights)

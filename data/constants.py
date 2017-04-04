@@ -1,20 +1,20 @@
 import numpy as np
-FILE_PATH = 'env/Map_v03'
+FILE_PATH = 'env/Map_v01'
 with open(FILE_PATH) as f:
         ls = [list(l.strip('\n')) for l in f.readlines()]
 MAZE_SIZE = np.shape(ls)
-BLOCK_SIZE = (4, 4)
+BLOCK_SIZE = (3, 3)
 UP = (-1, 0)
 DOWN = (1, 0)
 LEFT = (0, -1)
 RIGHT = (0, 1)
 WALL = '#'
-WALL_PUN = -0.5
+WALL_PUN = -1
 HOLE = 'H'
 HOLE_PUN = -1
 FIN = 'F'
 FIN_PUN = 2
-BOUND_PUN = -0.1
+BOUND_PUN = -2
 ACTIONS = [UP, DOWN, LEFT, RIGHT]
 ACTIONS_WORDS = ['UP', 'DOWN', 'LEFT', 'RIGHT']
 COLORS = ['grey', 'white', 'yellow', 'blue', 'magenta', 'cyan', 'white']
@@ -30,4 +30,5 @@ NN = 10 #Neurons num
 GAMMA = 0.95
 REWARD = 0.1
 DELTA = 0.000001
-LOG_ON = False
+LOG_ON = True
+WALL_THOLD = 0.5
