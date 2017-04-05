@@ -16,7 +16,7 @@ class Env:
                     self.num_maze[i, j] = 1
                 else:
                     self.num_maze[i, j] = 0
-        self.update((0, 0), 'A')
+        self.update(START, 'A')
     #---------------------------------------------------------------------------------------------------#
     # To display process of agent's movement
     def show(self, position):
@@ -73,7 +73,7 @@ class Env:
         #if we are out of right bound:
         if right > MAZE_SIZE[1] - 1:
             right = MAZE_SIZE[1] - 1
-            left = MAZE_SIZE[1] - 1 - BLOCK_SIZE[1]
+            left = MAZE_SIZE[1] - BLOCK_SIZE[1]
         #if we are out of up bound
         if up < 0:
             up = 0
@@ -81,7 +81,7 @@ class Env:
         #if we are out of down bound
         if down > MAZE_SIZE[0] - 1:
             down = MAZE_SIZE[0] - 1
-            up = MAZE_SIZE[0] - 1 - BLOCK_SIZE[0]
+            up = MAZE_SIZE[0] - BLOCK_SIZE[0]
         return (left, right, up, down)
     # ---------------------------------------------------------------------------------------------------#
     # Numerical value of block
@@ -92,13 +92,18 @@ class Env:
 
 class THSOM:
     sm = np.zeros((0, 0))
-    tm = np.zeros((0, 0))
+    tm = []
     neurons_num = 0
     dm = np.zeros((0, 0))
+    # ---------------------------------------------------------------------------------------------------#
+    # Constructor
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
         self.sm = np.random.rand(dim, neurons_num) * 0.6
+        self.tm = [[(0, np.random.randint(len(ACTIONS))) for i in range(neurons_num)] for j in range(neurons_num)]
+
+    # ---------------------------------------------------------------------------------------------------#
     def get_bmu(self, vec):
         mn = 1e9
         bmu = 0
@@ -108,6 +113,8 @@ class THSOM:
                bmu = i
                mn = dist
         return bmu
+
+    # ---------------------------------------------------------------------------------------------------#
     def update_sm_weights(self, ibmu, t, vec):
         #ibmu - index of bmu, t - moment of time, vec - input vector
         bmu = self.sm[:, ibmu]
@@ -125,6 +132,15 @@ class THSOM:
                 self.sm[:,i] += SLR * TLR * DIFF
                 if LOG_ON: print ("Dist", dist, "SLR = ", SLR, "TLR = ", TLR, "DIFF", DIFF)
                 if LOG_ON: print ("After ", self.sm[:,i])
+
+    # ---------------------------------------------------------------------------------------------------#
+    def update_tm_weights(self, prev, cur, action, reward):
+        #prev - previous state , cur - current state
+        self.tm[prev, cur][0] += reward
+        self.tm[prev, cur][1] = action
+
+    # ---------------------------------------------------------------------------------------------------#
+    # We define special metrics
     def dist(self, x, y):
         # x - input, y - neuron
         y = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in y]
@@ -154,6 +170,9 @@ class THSOM:
         ind = min(d, key=lambda i: d[i])
         ans = alpha * (1 - np.exp(-ind / betta)) + (1 - alpha) * (1 - np.exp(-d[ind] / betta))
         return ans
+
+    # ---------------------------------------------------------------------------------------------------#
+    # Graphical neuron representation
     def get_neuron_as_block(self, i):
         x = self.sm[:,i]
         for i in range(len(x)):
@@ -163,20 +182,3 @@ class THSOM:
                 print ('0', end='')
             if (i + 1) % BLOCK_SIZE[0] == 0:
                 print ()
-class QNet:
-    weights = np.zeros((0, 0))
-    n = BLOCK_SIZE[0]*BLOCK_SIZE[1]
-    def __init__(self):
-        self.weights = np.random.rand(self.n, 4)
-    def predict(self, x):
-        # x - input signal 16x1
-        ans = np.dot(x.T, self.weights)
-        if LOG_ON: print ('Distribution', ans)
-        return np.argmax(ans)
-    def back_prop(self, reward, x, ind):
-        #x - input vector, y - output answer
-        old_weights = np.copy(self.weights[:, ind])
-        self.weights[:, ind] = self.weights[:, ind] + (x + 1) * reward + np.ones(self.n).T * DELTA
-        if LOG_ON: print ('Weights Delta', self.weights[:, ind] - old_weights)
-    def print_weights(self):
-        print (self.weights)
