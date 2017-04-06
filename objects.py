@@ -43,8 +43,8 @@ class Env:
             self.update(position, 'A')
             return position, BOUND_PUN, True
         if self.maze[i][j] == WALL:
-            self.update((i, j), '*')
-            self.update(position, '0')
+            # self.update((i, j), '*')
+            # self.update(position, '0')
             return position, WALL_PUN, True
         if self.maze[i][j] == HOLE:
             return (i, j), HOLE_PUN, True
@@ -53,7 +53,10 @@ class Env:
             return (i, j), FIN_PUN, True
         self.update(position, '0')
         self.update((i, j), 'A')
-        return (i, j), REWARD, False
+        prev_dist = np.linalg.norm(np.array(FIN_POS) - np.array(position)) #distance to finish point
+        cur_dist = np.linalg.norm(np.array(FIN_POS) - np.array((i, j)))
+        reward = DIST_REWARD+REWARD if cur_dist < prev_dist else REWARD #motivation to move straight to the finish
+        return (i, j), reward, False
     # ---------------------------------------------------------------------------------------------------#
     # 4x4 Block were we are now
     def get_block(self, position):
@@ -100,8 +103,9 @@ class THSOM:
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
-        self.sm = np.random.rand(dim, neurons_num) * 0.6
-        self.tm = [[(0, np.random.randint(len(ACTIONS))) for i in range(neurons_num)] for j in range(neurons_num)]
+        self.sm = np.random.rand(dim, neurons_num)
+        self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
+        #######first - actions, last - weight
 
     # ---------------------------------------------------------------------------------------------------#
     def get_bmu(self, vec):
@@ -136,8 +140,16 @@ class THSOM:
     # ---------------------------------------------------------------------------------------------------#
     def update_tm_weights(self, prev, cur, action, reward):
         #prev - previous state , cur - current state
-        self.tm[prev, cur][0] += reward
-        self.tm[prev, cur][1] = action
+        self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + reward, 0), 1)
+    def get_action(self, cur):
+        #cur - current neuron
+        max_w = -1
+        action = 0
+        for i in self.tm[cur]:
+            if np.max(i) > max_w:
+                max_w = np.max(i)
+                action = np.argmax(i)
+        return action
 
     # ---------------------------------------------------------------------------------------------------#
     # We define special metrics
@@ -182,3 +194,10 @@ class THSOM:
                 print ('0', end='')
             if (i + 1) % BLOCK_SIZE[0] == 0:
                 print ()
+    def print_tm(self):
+        for i in self.tm:
+            print(i)
+    def print_sm(self):
+        for i in range(self.neurons_num):
+            print('Neuron', i)
+            self.get_neuron_as_block(i)
