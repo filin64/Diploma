@@ -25,9 +25,9 @@ while (True):
         if T > 0: thsom.update_tm_weights(prev_state, ibmu, best_action, reward) #update temp weights from prev to cur
         # if is_done: break #if it was done on prev step then start again
         prev_state = ibmu #remember prev state
-        if LOG_ON: print('Greedy', np.exp(-step / 100)*0.5)
-        if np.random.rand() <= max (np.exp(-step / 100)*0.5, 0.2):  #Greedy Policy
+        if np.random.rand() <= max (np.exp(-step / 50), 0.3):  #Greedy Policy
             best_action = np.random.randint(len(ACTIONS))
+            if LOG_ON: print('Greedy', np.exp(-step / 50))
         else:
             best_action = thsom.get_action(ibmu) #define the best action in current state
         if LOG_ON: print ('Best Action', ACTIONS_WORDS[best_action])
@@ -40,4 +40,8 @@ while (True):
         step += 1 #increase general step counter
         # input("Press Enter")
         time.sleep(1)
+        if is_done:
+            print ('Done!', step)
+            break
+    break
         # os.system('clear')

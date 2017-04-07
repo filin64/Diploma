@@ -45,7 +45,7 @@ class Env:
         if self.maze[i][j] == WALL:
             # self.update((i, j), '*')
             # self.update(position, '0')
-            return position, WALL_PUN, True
+            return position, WALL_PUN, False
         if self.maze[i][j] == HOLE:
             return (i, j), HOLE_PUN, True
         if self.maze[i][j] == FIN:
@@ -103,7 +103,7 @@ class THSOM:
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
-        self.sm = np.random.rand(dim, neurons_num)
+        self.sm = np.random.rand(dim, neurons_num) * 0.8
         self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
         #######first - actions, last - weight
 

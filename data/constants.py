@@ -1,5 +1,5 @@
 import numpy as np
-FILE_PATH = 'env/Map_v01'
+FILE_PATH = 'env/Map_v04'
 with open(FILE_PATH) as f:
         lines = f.readlines()
         s = ''.join(lines)
@@ -14,7 +14,7 @@ DOWN = (1, 0)
 LEFT = (0, -1)
 RIGHT = (0, 1)
 WALL = '#'
-WALL_PUN = -1
+WALL_PUN = -0.95
 HOLE = 'H'
 HOLE_PUN = -0.95
 FIN = 'F'
@@ -28,15 +28,15 @@ L1 = 1
 R0 = 0.7
 R1 = 20
 T0 = 1
-T1 = 200
+T1 = 100
 S0 = 0.95
 S1 = 0.8
-NN = 10 #Neurons num
+NN = 20 #Neurons num
 GAMMA = 0.95
-REWARD = 0.05
+REWARD = 0.1
 DELTA = 0.000001
 LOG_ON = True
 WALL_THOLD = 0.5
 START = (int(start/MAZE_SIZE[1]), start % MAZE_SIZE[1])
 FIN_POS = (int(fin/MAZE_SIZE[1]), fin % MAZE_SIZE[1])
-DIST_REWARD = 0.2
+DIST_REWARD = 0.3
