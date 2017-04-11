@@ -18,7 +18,7 @@ for file_num, file_path in enumerate(FILE_PATH):
     is_done = False
     env.show(position)
     if file_num > 0: M0 = 1000 #if we're not in training session turn off greedy-policy
-    for T in range(1000):
+    for T in range(10000):
         if LOG_ON: print ("TIME = ", T)
         block = env.return_block_as_vector(position) #where we are?
         ibmu = thsom.get_bmu(block) #Index of BMU
@@ -40,7 +40,6 @@ for file_num, file_path in enumerate(FILE_PATH):
         env.show(position)
         T += 1 #increase general step counter
         M0 += 1
-        input("Press Enter")
         # time.sleep(0.5)
         if is_done:
             print ('Done!', T)

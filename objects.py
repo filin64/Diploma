@@ -53,16 +53,10 @@ class Env:
     # Return values: new_cell, reward, is_done
     def step(self, position, action):
         i, j = np.array(position) + np.array(action)
-        # if we are out of bounds
-        if i < 0 or j < 0 or i >= self.MAZE_SIZE[0] or j >= self.MAZE_SIZE[1]:
-            self.update(position, 'A')
-            return position, BOUND_PUN, True
         if self.maze[i][j] == WALL:
             # self.update((i, j), '*')
             # self.update(position, '0')
             return position, WALL_PUN, False
-        if self.maze[i][j] == HOLE:
-            return (i, j), HOLE_PUN, True
         if self.maze[i][j] == FIN:
             self.update((i, j), '*')
             return (i, j), FIN_PUN, True
