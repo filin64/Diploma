@@ -5,18 +5,29 @@ from collections import deque
 
 class Env:
     maze = []
-    num_maze = []
-    def __init__(self):
-        f = open(FILE_PATH)
-        self.maze = [list(l.strip('\n')) for l in f.readlines()]
-        self.num_maze = np.zeros((MAZE_SIZE))
-        for i in range (MAZE_SIZE[0]):
-            for j in range (MAZE_SIZE[1]):
+    num_maze = [] #numerical representation of maze
+    START = 0 #Start position coordinates
+    FIN = 0 #Finish position coordinates
+    MAZE_SIZE = 0
+    def __init__(self, file_path):
+        f = open(file_path)
+        lines = f.readlines()
+        self.maze = [list(l.strip('\n')) for l in lines] #read maze from file
+        self.MAZE_SIZE = np.shape(self.maze)
+        self.num_maze = np.zeros((self.MAZE_SIZE)) 
+        for i in range (self.MAZE_SIZE[0]):
+            for j in range (self.MAZE_SIZE[1]):
                 if self.maze[i][j] == WALL:
                     self.num_maze[i, j] = 1
                 else:
                     self.num_maze[i, j] = 0
-        self.update(START, 'A')
+        s = ''.join(lines)
+        s = s.replace('\n', '')
+        start = s.index('S')
+        fin = s.index('F')
+        self.START = (int(start / self.MAZE_SIZE[1]), start % self.MAZE_SIZE[1]) #defining where the points are
+        self.FIN = (int(fin / self.MAZE_SIZE[1]), fin % self.MAZE_SIZE[1])
+        self.update(self.START, 'A')
     #---------------------------------------------------------------------------------------------------#
     # To display process of agent's movement
     def show(self, position):
@@ -25,8 +36,12 @@ class Env:
             for j in range(np.shape(self.maze)[1]):
                 if j >= left and j <= right and i >= up and i <= down:
                      print(colored(self.maze[i][j], 'red'), end='')
+                elif self.maze[i][j] == WALL:
+                    print(colored(self.maze[i][j], 'green'), end='')
+                elif self.maze[i][j] == FIN:
+                    print(colored(self.maze[i][j], 'blue'), end='')
                 else:
-                     print(colored(self.maze[i][j], 'white'), end ='')
+                    print(colored(self.maze[i][j], 'white'), end ='')
             print()
         print ('---------------------------------------------------------------------------------------------')
     #---------------------------------------------------------------------------------------------------#
@@ -39,7 +54,7 @@ class Env:
     def step(self, position, action):
         i, j = np.array(position) + np.array(action)
         # if we are out of bounds
-        if i < 0 or j < 0 or i >= MAZE_SIZE[0] or j >= MAZE_SIZE[1]:
+        if i < 0 or j < 0 or i >= self.MAZE_SIZE[0] or j >= self.MAZE_SIZE[1]:
             self.update(position, 'A')
             return position, BOUND_PUN, True
         if self.maze[i][j] == WALL:
@@ -53,8 +68,8 @@ class Env:
             return (i, j), FIN_PUN, True
         self.update(position, '0')
         self.update((i, j), 'A')
-        prev_dist = np.linalg.norm(np.array(FIN_POS) - np.array(position)) #distance to finish point
-        cur_dist = np.linalg.norm(np.array(FIN_POS) - np.array((i, j)))
+        prev_dist = np.linalg.norm(np.array(self.FIN) - np.array(position)) #distance to finish point
+        cur_dist = np.linalg.norm(np.array(self.FIN) - np.array((i, j)))
         reward = DIST_REWARD+REWARD if cur_dist < prev_dist else REWARD #motivation to move straight to the finish
         return (i, j), reward, False
     # ---------------------------------------------------------------------------------------------------#
@@ -74,17 +89,17 @@ class Env:
             left = 0
             right = BLOCK_SIZE[1] - 1
         #if we are out of right bound:
-        if right > MAZE_SIZE[1] - 1:
-            right = MAZE_SIZE[1] - 1
-            left = MAZE_SIZE[1] - BLOCK_SIZE[1]
+        if right > self.MAZE_SIZE[1] - 1:
+            right = self.MAZE_SIZE[1] - 1
+            left = self.MAZE_SIZE[1] - BLOCK_SIZE[1]
         #if we are out of up bound
         if up < 0:
             up = 0
             down = BLOCK_SIZE[0] - 1
         #if we are out of down bound
-        if down > MAZE_SIZE[0] - 1:
-            down = MAZE_SIZE[0] - 1
-            up = MAZE_SIZE[0] - BLOCK_SIZE[0]
+        if down > self.MAZE_SIZE[0] - 1:
+            down = self.MAZE_SIZE[0] - 1
+            up = self.MAZE_SIZE[0] - BLOCK_SIZE[0]
         return (left, right, up, down)
     # ---------------------------------------------------------------------------------------------------#
     # Numerical value of block
@@ -103,7 +118,7 @@ class THSOM:
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
-        self.sm = np.random.rand(dim, neurons_num) * 0.8
+        self.sm = np.random.rand(dim, neurons_num) * 0.7
         self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
         #######first - actions, last - weight
 
@@ -140,7 +155,12 @@ class THSOM:
     # ---------------------------------------------------------------------------------------------------#
     def update_tm_weights(self, prev, cur, action, reward):
         #prev - previous state , cur - current state
-        self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + reward, 0), 1)
+        self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + reward, MIN_TM), MAX_TM)
+        if self.tm[prev][cur][action] == MAX_TM:
+            self.tm[prev][cur][action] = MIN_TM
+            if LOG_ON: print ('DeadLock!')
+            return True
+        return False
     def get_action(self, cur):
         #cur - current neuron
         max_w = -1

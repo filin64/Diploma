@@ -1,13 +1,4 @@
-import numpy as np
-FILE_PATH = 'env/Map_v04'
-with open(FILE_PATH) as f:
-        lines = f.readlines()
-        s = ''.join(lines)
-        s = s.replace('\n', '')
-        start = s.index('S')
-        fin = s.index('F')
-        ls = [list(l.strip('\n')) for l in lines]
-MAZE_SIZE = np.shape(ls)
+FILE_PATH = ['env/Map_v01', 'env/Map_v02', 'env/Map_v04', 'env/Map_v03']
 BLOCK_SIZE = (3, 3)
 UP = (-1, 0)
 DOWN = (1, 0)
@@ -37,6 +28,8 @@ REWARD = 0.1
 DELTA = 0.000001
 LOG_ON = True
 WALL_THOLD = 0.5
-START = (int(start/MAZE_SIZE[1]), start % MAZE_SIZE[1])
-FIN_POS = (int(fin/MAZE_SIZE[1]), fin % MAZE_SIZE[1])
-DIST_REWARD = 0.3
+DIST_REWARD = 0.5
+MIN_TM = -1
+MAX_TM = 5
+M0 = 0
+M1 = 50
