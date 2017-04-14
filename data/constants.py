@@ -1,4 +1,4 @@
-FILE_PATH = ['env/Map_v03', 'env/Map_v01', 'env/Map_v01', 'env/Map_v01']
+FILE_PATH = ['env/Map_v05', 'env/Map_v04', 'env/Map_v03', 'env/Map_v02', 'env/Map_v01']
 BLOCK_SIZE = (3, 3)
 UP = (-1, 0)
 DOWN = (1, 0)
@@ -7,7 +7,7 @@ RIGHT = (0, 1)
 WALL = '#'
 WALL_PUN = -0.95
 FIN = 'F'
-FIN_PUN = 2
+FIN_PUN = 0.03
 ACTIONS = [UP, DOWN, LEFT, RIGHT]
 ACTIONS_WORDS = ['UP', 'DOWN', 'LEFT', 'RIGHT']
 COLORS = ['grey', 'white', 'yellow', 'blue', 'magenta', 'cyan', 'white']
