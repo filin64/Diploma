@@ -2,6 +2,10 @@ import numpy as np
 from data.constants import *
 from termcolor import colored
 from collections import deque
+import logging
+
+logger = logging.getLogger()
+logging.basicConfig(level = logging.INFO)
 
 class Env:
     maze = []
@@ -112,7 +116,7 @@ class THSOM:
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
-        self.sm = np.random.rand(dim, neurons_num) * 0.7
+        self.sm = np.random.rand(dim, neurons_num) * 0.8
         self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
         #######first - actions, last - weight
 
@@ -122,10 +126,20 @@ class THSOM:
         bmu = 0
         for i in range(self.neurons_num):
             dist = self.dist(x=vec, y=self.sm[:,i])
+            logger.info("Dist between " + str(i) + " = " + str(dist))
             if (dist < mn):
                bmu = i
                mn = dist
         return bmu
+
+    # ---------------------------------------------------------------------------------------------------#
+    def print_bmu(self, ibmu):
+        bmu = self.sm[:, ibmu]
+        bmu.shape = (BLOCK_SIZE[0], BLOCK_SIZE[1])
+        for i in range(bmu.shape[0]):
+            for j in range(bmu.shape[1]):
+                print(bmu[i, j], end='')
+            print()
 
     # ---------------------------------------------------------------------------------------------------#
     def update_sm_weights(self, ibmu, t, vec):
@@ -133,28 +147,23 @@ class THSOM:
         bmu = self.sm[:, ibmu]
         # rad = max (10**(-10), R0 * np.exp(-t / R1))
         rad = 10**(-10)
-        if LOG_ON: print ("RADIUS = ", rad)
+        logger.info("RADIUS = " + str(rad))
         for i in range(self.neurons_num):
-            dist = self.dist(x=self.sm[:,i], y=bmu)
+            dist = self.dist(x=self.sm[:, i], y=bmu)
             if dist < rad:
-                if LOG_ON: print ("SPATIAL VECTOR ", i)
+                logger.info("SPATIAL VECTOR " + str(i))
                 SLR = S0 * np.exp(-dist*dist/S1)
                 TLR = T0 * np.exp(-t / T1)
                 DIFF = vec - self.sm[:,i]
-                if LOG_ON: print ("Before ", self.sm[:,i])
+                logger.info("Before " + str(self.sm[:, i]))
                 self.sm[:,i] += SLR * TLR * DIFF
-                if LOG_ON: print ("Dist", dist, "SLR = ", SLR, "TLR = ", TLR, "DIFF", DIFF)
-                if LOG_ON: print ("After ", self.sm[:,i])
+                logger.info("Dist" + str(dist) + "SLR = " + str(SLR) + "TLR = " + str(TLR) + "DIFF" + str(DIFF))
+                logger.info("After " + str(self.sm[:, i]))
 
     # ---------------------------------------------------------------------------------------------------#
     def update_tm_weights(self, prev, cur, action, reward):
         #prev - previous state , cur - current state
         self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + reward, MIN_TM), MAX_TM)
-        if self.tm[prev][cur][action] == MAX_TM:
-            self.tm[prev][cur][action] = MIN_TM
-            if LOG_ON: print ('DeadLock!')
-            return True
-        return False
     def get_action(self, cur):
         #cur - current neuron
         max_w = -1
@@ -171,7 +180,7 @@ class THSOM:
         # x - input, y - neuron
         y = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in y]
         x = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in x]
-        alpha = 0.5
+        alpha = 0.3
         betta = 5
         y_ld = deque(y) #for left shift
         y_rd = deque(y) #for right shift
@@ -184,17 +193,17 @@ class THSOM:
             y_list_ld = list(np.uint64(i) for i in y_ld)
             shift -= 1
             s = sum(np.bitwise_xor(x, y_list_ld))
-            d[abs(shift)] = s
+            d[str(shift)] = s
         shift = 0
         while y_rd[-1] == 0 and abs(shift) < len(y_rd):
             y_rd.rotate(1)
             y_list_rd = list(np.uint64(i) for i in y_rd)
             shift += 1
             s = sum(np.bitwise_xor(x, y_list_rd))
-            d[abs(shift)] = s
+            d[str(shift)] = s
         #ind - количество сдвигов
         ind = min(d, key=lambda i: d[i])
-        ans = alpha * (1 - np.exp(-ind / betta)) + (1 - alpha) * (1 - np.exp(-d[ind] / betta))
+        ans = alpha * (1 - np.exp(-abs(int(ind)) / betta)) + (1 - alpha) * (1 - np.exp(-d[ind] / betta))
         return ans
 
     # ---------------------------------------------------------------------------------------------------#
