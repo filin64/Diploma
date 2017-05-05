@@ -5,7 +5,29 @@ from collections import deque
 import logging
 
 logger = logging.getLogger()
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level = logging.CRITICAL)
+
+def generate_patterns():
+    n = BLOCK_SIZE[0]
+    m = BLOCK_SIZE[1]
+    matrix = np.zeros((n*m, 9))
+    #generate horizontal walls:
+    matrix[0:m, 0] = 1 #top
+    matrix[n*m - m: n*m, 1] = 1 #bottom
+    # generate vertical walls:
+    matrix[0:m*n:m, 3] = 1 #left
+    matrix[m-1:m*n:m, 4] = 1 #right
+    #generate corners:
+    matrix[0:m, 5] = 1
+    matrix[0:m * n:m, 5] = 1
+    matrix[0:m, 6] = 1
+    matrix[m - 1:m * n:m, 6] = 1
+    matrix[n * m - m: n * m, 7] = 1
+    matrix[0:m * n:m, 7] = 1
+    matrix[n * m - m: n * m, 2] = 1
+    matrix[m - 1:m * n:m, 2] = 1
+    return matrix
+
 
 class Env:
     maze = []
@@ -116,7 +138,10 @@ class THSOM:
     def __init__(self, neurons_num, dim):
         #dim - length of vectors
         self.neurons_num = neurons_num
-        self.sm = np.random.rand(dim, neurons_num) * 0.8
+        if RAND_SM == True:
+            self.sm = np.random.rand(dim, neurons_num) * 0.8
+        else:
+            self.sm = generate_patterns()
         self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
         #######first - actions, last - weight
 
@@ -172,6 +197,8 @@ class THSOM:
             if np.max(i) > max_w:
                 max_w = np.max(i)
                 action = np.argmax(i)
+        if max_w == 0:
+            return np.random.randint(4)
         return action
 
     # ---------------------------------------------------------------------------------------------------#
