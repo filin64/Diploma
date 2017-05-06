@@ -3,17 +3,14 @@ import numpy as np
 from data.constants import *
 import time
 import logging
-def sigmoid(x):
-  return 1 / (1 + np.exp(-x))
 
 logger = logging.getLogger()
-logging.basicConfig(level = logging.CRITICAL)
+logging.basicConfig(level = logging.INFO)
 ff = lambda x: "%.5f" % x #setting float precision
 np.set_printoptions(formatter={'float_kind':ff})
 thsom = obj.THSOM(NN, BLOCK_SIZE[0]*BLOCK_SIZE[1]) #creating THSOM instance
 M0 = 0 #parameters for greedy policy
 M1 = 10
-DL = False #DeadLock
 prev_state = 0 #previous env state
 for file_num, file_path in enumerate(FILE_PATH):
     env = obj.Env(file_path)
@@ -37,13 +34,13 @@ for file_num, file_path in enumerate(FILE_PATH):
         logger.info('Best Action' + ACTIONS_WORDS[best_action])
         action = ACTIONS[best_action]
         position, reward, is_done = env.step(position, action) #make an action
-        logger.info('Reward ' + str(reward))
+        logger.warning('Reward ' + str(reward))
         if LOG_ON: thsom.print_sm()
         if LOG_ON: thsom.print_tm()
         env.show(position)
         T += 1 #increase general step counter
         M0 += 1
-        # time.sleep(0.3)
+        time.sleep(0.3)
         # input("Press Enter")
         if is_done:
             print ('Done!', T)

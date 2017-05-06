@@ -83,8 +83,7 @@ class Env:
             # self.update((i, j), '*')
             # self.update(position, '0')
             return position, WALL_PUN, False
-        if self.maze[i][j] == FIN:
-            self.update((i, j), '*')
+        if self.check_finish(position):
             return (i, j), FIN_PUN, True
         self.update(position, '0')
         self.update((i, j), 'A')
@@ -126,6 +125,15 @@ class Env:
     def return_block_as_vector(self, position):
         left, right, up, down = self.get_block(position)
         return self.num_maze[int(up):int(down)+1, int(left):int(right)+1].ravel()
+    # ---------------------------------------------------------------------------------------------------#
+    # If 'F' into the block then we are done
+    def check_finish(self, position):
+        left, right, up, down = self.get_block(position)
+        for i in range(left, right + 1):
+            for j in range(up, down + 1):
+                if self.mazep[i][j] == FIN:
+                    return True
+        return False
 
 
 class THSOM:
@@ -133,6 +141,7 @@ class THSOM:
     tm = []
     neurons_num = 0
     dm = np.zeros((0, 0))
+    gamma = 1
     # ---------------------------------------------------------------------------------------------------#
     # Constructor
     def __init__(self, neurons_num, dim):
@@ -188,7 +197,10 @@ class THSOM:
     # ---------------------------------------------------------------------------------------------------#
     def update_tm_weights(self, prev, cur, action, reward):
         #prev - previous state , cur - current state
-        self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + reward, MIN_TM), MAX_TM)
+        logger.warning("Prev Prob" + str(self.tm[prev][cur][action]))
+        self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + self.gamma*reward, MIN_TM), MAX_TM)
+        logger.warning("Current Prob" + str(self.tm[prev][cur][action]))
+        self.gamma *= self.gamma
     def get_action(self, cur):
         #cur - current neuron
         max_w = -1
@@ -198,6 +210,7 @@ class THSOM:
                 max_w = np.max(i)
                 action = np.argmax(i)
         if max_w == 0:
+            logger.info("Random Action")
             return np.random.randint(4)
         return action
 
