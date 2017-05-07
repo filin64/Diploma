@@ -3,14 +3,15 @@ from data.constants import *
 from termcolor import colored
 from collections import deque
 import logging
+from scipy.spatial import distance
 
-logger = logging.getLogger()
-logging.basicConfig(level = logging.CRITICAL)
+logging.basicConfig(level = logging.WARNING, filename='data/log.log')
 
 def generate_patterns():
     n = BLOCK_SIZE[0]
     m = BLOCK_SIZE[1]
-    matrix = np.zeros((n*m, 9))
+    matrix = np.zeros((n*m, NN))
+    matrix[:,9:NN] = np.random.rand(n*m, NN - 9) * 0.8
     #generate horizontal walls:
     matrix[0:m, 0] = 1 #top
     matrix[n*m - m: n*m, 1] = 1 #bottom
@@ -87,8 +88,8 @@ class Env:
             return (i, j), FIN_PUN, True
         self.update(position, '0')
         self.update((i, j), 'A')
-        prev_dist = np.linalg.norm(np.array(self.FIN) - np.array(position)) #distance to finish point
-        cur_dist = np.linalg.norm(np.array(self.FIN) - np.array((i, j)))
+        prev_dist = self.dist_to_fin(position) #distance to finish point
+        cur_dist = self.dist_to_fin((i, j))
         reward = DIST_REWARD+REWARD if cur_dist < prev_dist else REWARD #motivation to move straight to the finish
         return (i, j), reward, False
     # ---------------------------------------------------------------------------------------------------#
@@ -129,12 +130,15 @@ class Env:
     # If 'F' into the block then we are done
     def check_finish(self, position):
         left, right, up, down = self.get_block(position)
-        for i in range(left, right + 1):
-            for j in range(up, down + 1):
-                if self.mazep[i][j] == FIN:
+        for i in range(up, down + 1):
+            for j in range(left, right + 1):
+                if self.maze[i][j] == FIN:
                     return True
         return False
-
+    # ---------------------------------------------------------------------------------------------------#
+    # Distance to finish
+    def dist_to_fin(self, position):
+        return distance.cityblock(np.array(self.FIN), np.array(position))
 
 class THSOM:
     sm = np.zeros((0, 0))
@@ -142,6 +146,9 @@ class THSOM:
     neurons_num = 0
     dm = np.zeros((0, 0))
     gamma = 1
+    mem_size = 4
+    time = 0
+    memory = [] #when agent is stucked somwhere and not reducing the distance to finish fist is state, second is distance
     # ---------------------------------------------------------------------------------------------------#
     # Constructor
     def __init__(self, neurons_num, dim):
@@ -153,6 +160,7 @@ class THSOM:
             self.sm = generate_patterns()
         self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
         #######first - actions, last - weight
+        self.memory = [0 for i in range(self.mem_size)]
 
     # ---------------------------------------------------------------------------------------------------#
     def get_bmu(self, vec):
@@ -160,7 +168,7 @@ class THSOM:
         bmu = 0
         for i in range(self.neurons_num):
             dist = self.dist(x=vec, y=self.sm[:,i])
-            logger.info("Dist between " + str(i) + " = " + str(dist))
+            logging.info("Dist between " + str(i) + " = " + str(dist))
             if (dist < mn):
                bmu = i
                mn = dist
@@ -181,26 +189,41 @@ class THSOM:
         bmu = self.sm[:, ibmu]
         # rad = max (10**(-10), R0 * np.exp(-t / R1))
         rad = 10**(-10)
-        logger.info("RADIUS = " + str(rad))
+        logging.info("RADIUS = " + str(rad))
         for i in range(self.neurons_num):
             dist = self.dist(x=self.sm[:, i], y=bmu)
             if dist < rad:
-                logger.info("SPATIAL VECTOR " + str(i))
+                logging.info("SPATIAL VECTOR " + str(i))
                 SLR = S0 * np.exp(-dist*dist/S1)
+                if ibmu in range(9):
+                    SLR = 0
                 TLR = T0 * np.exp(-t / T1)
                 DIFF = vec - self.sm[:,i]
-                logger.info("Before " + str(self.sm[:, i]))
+                logging.debug("Before " + str(self.sm[:, i]))
                 self.sm[:,i] += SLR * TLR * DIFF
-                logger.info("Dist" + str(dist) + "SLR = " + str(SLR) + "TLR = " + str(TLR) + "DIFF" + str(DIFF))
-                logger.info("After " + str(self.sm[:, i]))
+                logging.debug("Dist" + str(dist) + "SLR = " + str(SLR) + "TLR = " + str(TLR) + "DIFF" + str(DIFF))
+                logging.debug("After " + str(self.sm[:, i]))
 
     # ---------------------------------------------------------------------------------------------------#
-    def update_tm_weights(self, prev, cur, action, reward):
+    def update_tm_weights(self, prev, cur, action, reward, dist_to_fin):
         #prev - previous state , cur - current state
-        logger.warning("Prev Prob" + str(self.tm[prev][cur][action]))
+        logging.warning("Prev Prob = " + str(self.tm[prev][cur][action]))
         self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + self.gamma*reward, MIN_TM), MAX_TM)
-        logger.warning("Current Prob" + str(self.tm[prev][cur][action]))
+        logging.critical('Prev ' + str(prev) + 'Cur ' + str(cur))
+        if abs(self.memory[0] - self.memory[-1]) < 2 and self.time > self.mem_size:
+            logging.warning(self.memory)
+            # self.tm[prev][cur][action] = self.tm[prev][cur][action] / 2
+            self.tm[prev][cur][2 * (action >= 2) + (action + 1) % 2] = 1
+            self.tm[prev][cur][action] = 0
+            logging.critical('DeadLock! ' + str(self.time % self.mem_size))
+            self.memory = [0 for i in range(self.mem_size)]
+            self.time = 0
+        self.memory = [dist_to_fin] + self.memory[0:self.mem_size-1]
+        self.time += 1
+        logging.info("Distance To finish")
+        logging.warning("Current Pro = " + str(self.tm[prev][cur][action]))
         self.gamma *= self.gamma
+    # ---------------------------------------------------------------------------------------------------#
     def get_action(self, cur):
         #cur - current neuron
         max_w = -1
@@ -210,7 +233,7 @@ class THSOM:
                 max_w = np.max(i)
                 action = np.argmax(i)
         if max_w == 0:
-            logger.info("Random Action")
+            logging.critical("Random Action")
             return np.random.randint(4)
         return action
 
@@ -220,7 +243,7 @@ class THSOM:
         # x - input, y - neuron
         y = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in y]
         x = [np.uint64(1) if i > WALL_THOLD else np.uint64(0) for i in x]
-        alpha = 0.3
+        alpha = 0.5
         betta = 5
         y_ld = deque(y) #for left shift
         y_rd = deque(y) #for right shift
@@ -248,19 +271,22 @@ class THSOM:
 
     # ---------------------------------------------------------------------------------------------------#
     # Graphical neuron representation
-    def get_neuron_as_block(self, i):
+    def get_neuron_as_block(self, i, f):
         x = self.sm[:,i]
         for i in range(len(x)):
             if x[i] > WALL_THOLD:
-                print('#', end='')
+                f.write('#')
             else:
-                print ('0', end='')
+                f.write ('0')
             if (i + 1) % BLOCK_SIZE[0] == 0:
-                print ()
+                f.write('\n')
     def print_tm(self):
+        logging.critical("Temporal Map:")
         for i in self.tm:
-            print(i)
+            logging.critical(i)
     def print_sm(self):
         for i in range(self.neurons_num):
-            print('Neuron', i)
-            self.get_neuron_as_block(i)
+            f = open('data/log.log', 'w')
+            logging.info('Neuron' + str(i))
+            self.get_neuron_as_block(i, f)
+            f.close()

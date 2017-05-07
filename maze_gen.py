@@ -3,7 +3,7 @@
 import numpy as np
 n = 32
 m = 32
-wall_num = 60
+wall_num = 30
 maze = [[0 for i in range(n)] for j in range(m)]
 def print_maze():
     for i in range(n):
@@ -38,7 +38,7 @@ set_bounds()
 for k in range(wall_num):
     i = np.random.randint(2, n)
     j = np.random.randint(2, m)
-    l = np.random.randint(5, 10)
+    l = np.random.randint(6, 7)
     p = np.random.rand()
     if p < 0.5:
         set_hWall(i, j, l)
