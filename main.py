@@ -16,6 +16,9 @@ for file_num, file_path in enumerate(FILE_PATH):
     position = env.START
     is_done = False
     thsom.print_sm()
+    log_file = open('data/log.log', 'w')
+    log_file.truncate()
+    log_file.close()
     if file_num > 0: M0 = 1000 #if we're not in training session turn off greedy-policy
     for T in range(1000):
         info_file = open('data/info.log', 'w')
@@ -26,16 +29,17 @@ for file_num, file_path in enumerate(FILE_PATH):
         thsom.get_neuron_as_block(ibmu, info_file) #present current state as symbol block
         logging.warning("BMU " + str(ibmu))
         thsom.update_sm_weights(ibmu, T, block) #update spatial weights
-        if T > 0: dist_to_finish = env.dist_to_fin(prev_position) #check distance to finish point at the previous step
-        if T > 0: thsom.update_tm_weights(prev_state, ibmu, best_action, reward, dist_to_finish) #update temp weights from prev to cur
+        if T > 0:
+            DL = thsom.update_tm_weights(prev_state, ibmu, best_action, reward) #update temp weights from prev to cur
+            if DL: M0 = 0 # if DeadLock then try some new
         logging.critical('----------------------------------------')
         # input("Press Enter")
-        time.sleep(0.5)
+        # time.sleep(0.5)
         prev_state = ibmu #remember prev state
         prev_position = position #remember prev position
-        if np.random.rand() <= max (np.exp(-M0 / M1), 0.1):  #Greedy Policy
+        if np.random.rand() <= max (np.exp(-M0 / M1), 0.3):  #Greedy Policy
             best_action = np.random.randint(len(ACTIONS))
-            logging.info('Greedy ' + str(np.exp(-M0 / M1)))
+            logging.warning('Greedy ' + str(np.exp(-M0 / M1)))
         else: best_action = thsom.get_action(ibmu) #define the best action in current state
         logging.info('Best Action' + ACTIONS_WORDS[best_action])
         info_file.write('Best Action' + ACTIONS_WORDS[best_action] + '\n')
@@ -53,6 +57,8 @@ for file_num, file_path in enumerate(FILE_PATH):
             print ('Done!', T)
             STEPS.append(T)
             break
-    # input("Press Enter")
+    input("Press Enter")
 plt.plot(STEPS)
+plt.ylabel('Number of Agent\'s steps')
+plt.xlabel('Iteration')
 plt.show()

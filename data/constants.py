@@ -1,5 +1,6 @@
-FILE_PATH = ['env/Map_v08', 'env/Map_v08', 'env/Map_v08']
-BLOCK_SIZE = (6, 6)
+FILE_PATH = ['env/Map_v08', 'env/Map_v08', 'env/Map_v08', 'env/Map_v08', 'env/Map_v08', 'env/Map_v08',
+             'env/Map_v08', 'env/Map_v08', 'env/Map_v08', 'env/Map_v08', 'env/Map_v08', 'env/Map_v08']
+BLOCK_SIZE = (5, 5)
 UP = (-1, 0)
 DOWN = (1, 0)
 LEFT = (0, -1)
@@ -19,14 +20,14 @@ T0 = 1
 T1 = 20
 S0 = 0.95
 S1 = 0.8
-NN = 30
+NN = 20
 #Neurons num
 GAMMA = 0.95
-REWARD = 0.01
+REWARD = 0.0001
 DELTA = 0.000001
 LOG_ON = True
 WALL_THOLD = 0.5
-DIST_REWARD = 0.03
+DIST_REWARD = 0.008
 MIN_TM = 0
 MAX_TM = 1
 M0 = 0

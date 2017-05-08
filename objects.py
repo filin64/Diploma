@@ -146,7 +146,7 @@ class THSOM:
     neurons_num = 0
     dm = np.zeros((0, 0))
     gamma = 1
-    mem_size = 4
+    mem_size = 20
     time = 0
     memory = [] #when agent is stucked somwhere and not reducing the distance to finish fist is state, second is distance
     # ---------------------------------------------------------------------------------------------------#
@@ -160,7 +160,7 @@ class THSOM:
             self.sm = generate_patterns()
         self.tm = [[[0, 0, 0, 0] for i in range(neurons_num)] for j in range(neurons_num)]
         #######first - actions, last - weight
-        self.memory = [0 for i in range(self.mem_size)]
+        self.memory = [-1 for i in range(self.mem_size)]
 
     # ---------------------------------------------------------------------------------------------------#
     def get_bmu(self, vec):
@@ -205,24 +205,20 @@ class THSOM:
                 logging.debug("After " + str(self.sm[:, i]))
 
     # ---------------------------------------------------------------------------------------------------#
-    def update_tm_weights(self, prev, cur, action, reward, dist_to_fin):
+    def update_tm_weights(self, prev, cur, action, reward):
         #prev - previous state , cur - current state
         logging.warning("Prev Prob = " + str(self.tm[prev][cur][action]))
         self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + self.gamma*reward, MIN_TM), MAX_TM)
+        self.memory = [prev] + self.memory[1:self.mem_size-1]
         logging.critical('Prev ' + str(prev) + 'Cur ' + str(cur))
-        if abs(self.memory[0] - self.memory[-1]) < 2 and self.time > self.mem_size:
-            logging.warning(self.memory)
-            # self.tm[prev][cur][action] = self.tm[prev][cur][action] / 2
-            self.tm[prev][cur][2 * (action >= 2) + (action + 1) % 2] = 1
-            self.tm[prev][cur][action] = 0
-            logging.critical('DeadLock! ' + str(self.time % self.mem_size))
-            self.memory = [0 for i in range(self.mem_size)]
-            self.time = 0
-        self.memory = [dist_to_fin] + self.memory[0:self.mem_size-1]
-        self.time += 1
-        logging.info("Distance To finish")
         logging.warning("Current Pro = " + str(self.tm[prev][cur][action]))
         self.gamma *= self.gamma
+        if self.memory.count(prev) > 10:
+            logging.critical('DeadLock')
+            self.memory = [-1 for i in range(self.mem_size)]
+            return True
+        else:
+            return False
     # ---------------------------------------------------------------------------------------------------#
     def get_action(self, cur):
         #cur - current neuron

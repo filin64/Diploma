@@ -1,8 +1,8 @@
 #This module generates maze depending on size, wall number etc
 
 import numpy as np
-n = 32
-m = 32
+n = 16
+m = 16
 wall_num = 30
 maze = [[0 for i in range(n)] for j in range(m)]
 def print_maze():
@@ -11,7 +11,7 @@ def print_maze():
             print (maze[i][j], end='')
         print ('\n')
 def write_maze():
-    f = open('env/Map_v08', 'w')
+    f = open('env/Map_v09', 'w')
     for i in range(n):
         for j in range(m):
             f.writelines(str(maze[i][j]))
@@ -38,7 +38,7 @@ set_bounds()
 for k in range(wall_num):
     i = np.random.randint(2, n)
     j = np.random.randint(2, m)
-    l = np.random.randint(6, 7)
+    l = np.random.randint(3, 4)
     p = np.random.rand()
     if p < 0.5:
         set_hWall(i, j, l)
