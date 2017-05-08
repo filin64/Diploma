@@ -34,7 +34,7 @@ for file_num, file_path in enumerate(FILE_PATH):
             if DL: M0 = 0 # if DeadLock then try some new
         logging.critical('----------------------------------------')
         # input("Press Enter")
-        # time.sleep(0.5)
+        time.sleep(0.5)
         prev_state = ibmu #remember prev state
         prev_position = position #remember prev position
         if np.random.rand() <= max (np.exp(-M0 / M1), 0.3):  #Greedy Policy

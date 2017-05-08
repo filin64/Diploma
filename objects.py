@@ -5,7 +5,7 @@ from collections import deque
 import logging
 from scipy.spatial import distance
 
-logging.basicConfig(level = logging.WARNING, filename='data/log.log')
+logging.basicConfig(level = logging.CRITICAL, filename='data/log.log')
 
 def generate_patterns():
     n = BLOCK_SIZE[0]
@@ -195,8 +195,8 @@ class THSOM:
             if dist < rad:
                 logging.info("SPATIAL VECTOR " + str(i))
                 SLR = S0 * np.exp(-dist*dist/S1)
-                if ibmu in range(9):
-                    SLR = 0
+                # if ibmu in range(9):
+                #     SLR = 0
                 TLR = T0 * np.exp(-t / T1)
                 DIFF = vec - self.sm[:,i]
                 logging.debug("Before " + str(self.sm[:, i]))
@@ -211,7 +211,7 @@ class THSOM:
         self.tm[prev][cur][action] = min(max(self.tm[prev][cur][action] + self.gamma*reward, MIN_TM), MAX_TM)
         self.memory = [prev] + self.memory[1:self.mem_size-1]
         logging.critical('Prev ' + str(prev) + 'Cur ' + str(cur))
-        logging.warning("Current Pro = " + str(self.tm[prev][cur][action]))
+        logging.warning("Current Proиф = " + str(self.tm[prev][cur][action]))
         self.gamma *= self.gamma
         if self.memory.count(prev) > 10:
             logging.critical('DeadLock')
